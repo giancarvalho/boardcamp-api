@@ -1,6 +1,8 @@
 import express from "express";
 import pg from "pg";
 import cors from "cors";
+import { gameSchema } from "./validations/gameValidations.js";
+import Joi from "joi";
 
 const port = 4000;
 const { Pool } = pg;
@@ -54,9 +56,14 @@ app.get("/categories", async (req, res) => {
 });
 
 app.post("/games", async (req, res) => {
-    const { name, image, stockTotal, categoryId, pricePerDay } = req.body;
-
     try {
+        const game = req.body;
+        const invalid = gameSchema.validate(game);
+
+        if (invalid.error) {
+            throw "invalid";
+        }
+        const { name, image, stockTotal, categoryId, pricePerDay } = game;
         await pool.query(
             `INSERT INTO games (name,
             image,
