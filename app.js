@@ -18,24 +18,41 @@ const connection = new Pool({
 
 app.use(express.json());
 
-app.post("/categories", (req, res) => {
+app.post("/categories", async (req, res) => {
     const category = req.body;
     const name = category.name.toLowerCase();
 
-    connection
-        .query("INSERT INTO categories (name) VALUES ($1)", [name])
-        .then(() => {
-            res.sendStatus(201);
-        })
-        .catch(() => {
-            res.sendStatus(409);
-        });
+    try {
+        if (!name) {
+            throw "empty";
+        }
+
+        await connection.query("INSERT INTO categories (name) VALUES ($1)", [
+            name,
+        ]);
+
+        return res.sendStatus(201);
+    } catch (error) {
+        if (error === "empty") {
+            return res.status(400).send("name cannot be empty");
+        }
+
+        if (error.code == 23505) {
+            return res.sendStatus(409);
+        }
+
+        res.sendStatus(500);
+    }
 });
 
-app.get("/categories", (req, res) => {
-    connection.query("SELECT * FROM categories").then((response) => {
-        res.send(response.rows);
-    });
+app.get("/categories", async (req, res) => {
+    try {
+        const result = await connection.query("SELECT * FROM categories");
+
+        res.send(result.rows);
+    } catch (error) {
+        res.sendStatus(500);
+    }
 });
 
 app.listen(port);
