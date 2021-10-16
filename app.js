@@ -151,7 +151,7 @@ app.get("/customers/:id", async (req, res) => {
 app.put("/customers/:id", async (req, res) => {
     const customer = req.body;
     const id = req.params.id;
-    const validation = await validateCustomer(customer, true);
+    const validation = await validateCustomer(customer, true, id);
 
     try {
         if (validation.isInvalid) {

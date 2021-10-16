@@ -16,9 +16,11 @@ const customerSchema = Joi.object({
         .required(),
 });
 
-async function validateCustomer(customer, isUpdate) {
+async function validateCustomer(customer, isUpdate, id) {
     const validation = { isInvalid: false, errorCode: null, errorMessage: "" };
     const data = customerSchema.validate(customer);
+    const search = isUpdate ? `id` : `cpf`;
+    const customerVariable = isUpdate ? id : customer.cpf;
 
     try {
         if (data.error) {
@@ -29,12 +31,12 @@ async function validateCustomer(customer, isUpdate) {
             return validation;
         }
 
-        const isExistentCpf = await pool.query(
-            "SELECT * FROM customers WHERE cpf = ($1)",
-            [customer.cpf]
+        const searchCustomer = await pool.query(
+            `SELECT * FROM customers WHERE ${search} = $1`,
+            [customerVariable]
         );
 
-        if (isExistentCpf.rows.length === 0 && isUpdate) {
+        if (searchCustomer.rows.length === 0 && isUpdate) {
             validation.isInvalid = true;
             validation.errorMessage +=
                 " You can't update a customer that is not registered.";
@@ -42,7 +44,7 @@ async function validateCustomer(customer, isUpdate) {
             return validation;
         }
 
-        if (isExistentCpf.rows.length > 0 && !isUpdate) {
+        if (searchCustomer.rows.length > 0 && !isUpdate) {
             validation.isInvalid = true;
             validation.errorMessage += " This customer is already registered.";
             validation.errorCode = 409;
