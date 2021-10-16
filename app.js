@@ -1,22 +1,12 @@
 import express from "express";
-import pg from "pg";
 import cors from "cors";
-import { gameSchema } from "./validations/gameValidations.js";
-import Joi from "joi";
+import { validateGame } from "./validations/gameValidations.js";
+import { pool } from "./db/pool.js";
 
 const port = 4000;
-const { Pool } = pg;
 
 const app = express();
 app.use(cors());
-
-const pool = new Pool({
-    user: "bootcamp_role",
-    password: "senha_super_hiper_ultra_secreta_do_role_do_bootcamp",
-    host: "localhost",
-    port: 5432,
-    database: "boardcamp",
-});
 
 app.use(express.json());
 
@@ -26,18 +16,27 @@ app.post("/categories", async (req, res) => {
 
     try {
         if (!name) {
-            throw "empty";
+            throw 400;
+        }
+
+        const isValidName = await pool.query(
+            `SELECT * FROM categories WHERE name = $1`,
+            [name]
+        );
+
+        if (isValidName.rows.length > 0) {
+            throw 409;
         }
 
         await pool.query("INSERT INTO categories (name) VALUES ($1)", [name]);
 
         return res.sendStatus(201);
     } catch (error) {
-        if (error === "empty") {
+        if (error === 400) {
             return res.status(400).send("name cannot be empty");
         }
 
-        if (error.code == 23505) {
+        if (error === 409) {
             return res.sendStatus(409);
         }
 
@@ -56,14 +55,16 @@ app.get("/categories", async (req, res) => {
 });
 
 app.post("/games", async (req, res) => {
-    try {
-        const game = req.body;
-        const invalid = gameSchema.validate(game);
+    const game = req.body;
+    const validation = await validateGame(game);
 
-        if (invalid.error) {
-            throw "invalid";
+    try {
+        if (validation.isInvalid) {
+            throw validation.errorCode;
         }
+
         const { name, image, stockTotal, categoryId, pricePerDay } = game;
+
         await pool.query(
             `INSERT INTO games (name,
             image,
@@ -75,8 +76,10 @@ app.post("/games", async (req, res) => {
 
         res.sendStatus(201);
     } catch (error) {
-        if (error.code == 23505) {
-            return res.sendStatus(409);
+        if (validation.isInvalid) {
+            return res
+                .status(validation.errorCode)
+                .send(validation.errorMessage);
         }
 
         res.sendStatus(500);
@@ -87,23 +90,18 @@ app.get("/games", async (req, res) => {
     const name = req.query.name ? `%${req.query.name}%` : "%";
 
     try {
-        let result = await pool.query(
-            `SELECT * FROM games WHERE name iLIKE ($1)`,
+        const result = await pool.query(
+            `SELECT games.*, categories.name AS "categoryName" 
+            FROM games 
+            JOIN categories 
+            ON games."categoryId"=categories.id
+            WHERE games.name iLIKE ($1);`,
             [name]
         );
-
-        // result.rows.forEach(async (game) => {
-        //     const category = await pool.query(
-        //         `SELECT name FROM categories WHERE id = ($1)`,
-        //         [game.categoryId]
-        //     );
-        //     game.categoryName = category.rows[0].name;
-        // });
 
         res.send(result.rows);
     } catch (error) {
         console.log(error);
-
         res.sendStatus(500);
     }
 });
