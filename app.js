@@ -126,10 +126,10 @@ app.get("/customers", async (req, res) => {
             [cpf]
         );
 
-        console.log(result);
-
         res.send(result.rows);
-    } catch (error) {}
+    } catch (error) {
+        res.sendStatus(500);
+    }
 });
 
 app.get("/customers/:id", async (req, res) => {
