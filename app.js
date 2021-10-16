@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { validateGame } from "./validations/gameValidations.js";
 import { pool } from "./db/pool.js";
+import { validateCategory } from "./validations/categoryValidations.js";
 
 const port = 4000;
 
@@ -13,31 +14,19 @@ app.use(express.json());
 app.post("/categories", async (req, res) => {
     const category = req.body;
     const name = category.name.toLowerCase();
+    const validation = await validateCategory(name);
 
     try {
-        if (!name) {
-            throw 400;
-        }
-
-        const isValidName = await pool.query(
-            `SELECT * FROM categories WHERE name = $1`,
-            [name]
-        );
-
-        if (isValidName.rows.length > 0) {
-            throw 409;
+        if (validation.isInvalid) {
+            throw validation.errorCode;
         }
 
         await pool.query("INSERT INTO categories (name) VALUES ($1)", [name]);
 
         return res.sendStatus(201);
     } catch (error) {
-        if (error === 400) {
-            return res.status(400).send("name cannot be empty");
-        }
-
-        if (error === 409) {
-            return res.sendStatus(409);
+        if (validation.isInvalid) {
+            return res.status(error).send(validation.errorMessage);
         }
 
         res.sendStatus(500);
@@ -101,7 +90,6 @@ app.get("/games", async (req, res) => {
 
         res.send(result.rows);
     } catch (error) {
-        console.log(error);
         res.sendStatus(500);
     }
 });
