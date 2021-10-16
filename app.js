@@ -1,16 +1,10 @@
 import express from "express";
 import cors from "cors";
-import { validateGame } from "./validations/gameValidations.js";
 import { pool } from "./db/pool.js";
+import { validateGame } from "./validations/gameValidations.js";
 import { validateCategory } from "./validations/categoryValidations.js";
 import { validateCustomer } from "./validations/customerValidation.js";
 
-validateCustomer({
-    name: "João Alfredo",
-    phone: "64229744968",
-    cpf: "02265632151",
-    birthday: "10/06/1996",
-});
 const port = 4000;
 
 const app = express();
@@ -101,8 +95,14 @@ app.get("/games", async (req, res) => {
 
 app.post("/customers", async (req, res) => {
     const customer = req.body;
-    const { name, phone, cpf, birthday } = customer;
+    const validation = await validateCustomer(customer);
+
     try {
+        if (validation.isInvalid) {
+            throw validation.errorCode;
+        }
+
+        const { name, phone, cpf, birthday } = customer;
         pool.query(
             "INSERT INTO customers (name, phone, cpf, birthday) VALUES ($1, $2, $3, $4)",
             [name, phone, cpf, birthday]
@@ -110,6 +110,9 @@ app.post("/customers", async (req, res) => {
 
         res.sendStatus(201);
     } catch (error) {
+        if (validation.isInvalid) {
+            return res.status(error).send(validation.errorMessage);
+        }
         res.sendStatus(500);
     }
 });
@@ -127,6 +130,22 @@ app.get("/customers", async (req, res) => {
 
         res.send(result.rows);
     } catch (error) {}
+});
+
+app.get("/customers/:id", async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        const customerFound = await pool.query(
+            "SELECT * FROM customers WHERE id = $1",
+            [id]
+        );
+
+        res.send(customerFound.rows);
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+    }
 });
 
 app.listen(port);

@@ -16,8 +16,10 @@ async function validateGame(game) {
     try {
         if (invalid.error) {
             validation.isInvalid = true;
-            validation.errorMessage += invalid.error.details[0].message + ";";
+            validation.errorMessage += invalid.error.details[0].message;
             validation.errorCode = 400;
+
+            return validation;
         }
 
         const isValidCategory = await pool.query(

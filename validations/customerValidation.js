@@ -18,9 +18,35 @@ const customerSchema = Joi.object({
 
 async function validateCustomer(customer) {
     const validation = { isInvalid: false, errorCode: null, errorMessage: "" };
-    const validData = customerSchema.validate(customer);
+    const data = customerSchema.validate(customer);
 
-    console.log(validData);
+    try {
+        if (data.error) {
+            validation.isInvalid = true;
+            validation.errorMessage = data.error.details[0].message;
+            validation.errorCode = 400;
+
+            return validation;
+        }
+
+        const isExistentCpf = await pool.query(
+            "SELECT * FROM customers WHERE cpf = ($1)",
+            [customer.cpf]
+        );
+
+        if (isExistentCpf.rows.length > 0) {
+            validation.isInvalid = true;
+            validation.errorMessage += " This customer is already registered.";
+            validation.errorCode = 409;
+        }
+
+        return validation;
+    } catch (error) {
+        validation.isInvalid = true;
+        validation.errorMessage = "unknown error";
+        validation.errorCode = 500;
+        return validation;
+    }
 }
 
 export { validateCustomer };
