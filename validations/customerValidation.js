@@ -16,7 +16,7 @@ const customerSchema = Joi.object({
         .required(),
 });
 
-async function validateCustomer(customer) {
+async function validateCustomer(customer, isUpdate) {
     const validation = { isInvalid: false, errorCode: null, errorMessage: "" };
     const data = customerSchema.validate(customer);
 
@@ -34,10 +34,19 @@ async function validateCustomer(customer) {
             [customer.cpf]
         );
 
-        if (isExistentCpf.rows.length > 0) {
+        if (isExistentCpf.rows.length === 0 && isUpdate) {
+            validation.isInvalid = true;
+            validation.errorMessage +=
+                " You can't update a customer that is not registered.";
+            validation.errorCode = 400;
+            return validation;
+        }
+
+        if (isExistentCpf.rows.length > 0 && !isUpdate) {
             validation.isInvalid = true;
             validation.errorMessage += " This customer is already registered.";
             validation.errorCode = 409;
+            return validation;
         }
 
         return validation;

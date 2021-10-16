@@ -148,4 +148,29 @@ app.get("/customers/:id", async (req, res) => {
     }
 });
 
+app.put("/customers/:id", async (req, res) => {
+    const customer = req.body;
+    const id = req.params.id;
+    const validation = await validateCustomer(customer, true);
+
+    try {
+        if (validation.isInvalid) {
+            throw validation.errorCode;
+        }
+
+        const { name, phone, cpf, birthday } = customer;
+        pool.query(
+            "UPDATE customers SET name=$2, phone=$3, cpf=$4, birthday=$5 WHERE id = $1;",
+            [id, name, phone, cpf, birthday]
+        );
+
+        res.status(200).send("Updated.");
+    } catch (error) {
+        if (validation.isInvalid) {
+            return res.status(error).send(validation.errorMessage);
+        }
+        res.sendStatus(500);
+    }
+});
+
 app.listen(port);
