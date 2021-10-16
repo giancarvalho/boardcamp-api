@@ -66,9 +66,7 @@ app.post("/games", async (req, res) => {
         res.sendStatus(201);
     } catch (error) {
         if (validation.isInvalid) {
-            return res
-                .status(validation.errorCode)
-                .send(validation.errorMessage);
+            return res.status(error).send(validation.errorMessage);
         }
 
         res.sendStatus(500);
