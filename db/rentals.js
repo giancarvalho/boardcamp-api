@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { pool } from "./pool.js";
 
 async function getGamePrice(id) {
@@ -14,4 +15,19 @@ async function getGamePrice(id) {
     }
 }
 
-export { getGamePrice };
+async function getRentalData(id) {
+    try {
+        const rentalData = await pool.query(
+            `SELECT rentals."rentDate", games."pricePerDay" FROM rentals JOIN games ON rentals."gameId"=games.id WHERE rentals.id = $1;
+`,
+            [id]
+        );
+        return rentalData.rows[0];
+    } catch (error) {
+        return null;
+    }
+}
+
+export { getGamePrice, getRentalData };
+
+getRentalData(3);

@@ -5,7 +5,7 @@ import { validateGame } from "./validations/gameValidations.js";
 import { validateCategory } from "./validations/categoryValidations.js";
 import { validateCustomer } from "./validations/customerValidation.js";
 import { validateRental } from "./validations/rentalValidation.js";
-import { getGamePrice } from "./db/rentals.js";
+import { getGamePrice, getRentalData } from "./db/rentals.js";
 import dayjs from "dayjs";
 
 const PORT = 4000;
@@ -208,6 +208,29 @@ app.get("/rentals", async (req, res) => {
     } catch (error) {
         console.log(error);
 
+        res.sendStatus(500);
+    }
+});
+
+app.post("/rentals/:id/return", async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        const rentalData = await getRentalData(id);
+        const today = dayjs();
+        console.log(rentalData.rentDate);
+        const delayFee =
+            Number(today.diff(dayjs(rentalData.rentDate), "d")) *
+            rentalData.pricePerDay;
+        console.log(delayFee);
+        await pool.query(
+            `UPDATE rentals SET "returnDate"=$2, "delayFee"=$3 WHERE id = $1`,
+            [id, today, delayFee]
+        );
+
+        res.sendStatus(201);
+    } catch (error) {
+        console.log(error);
         res.sendStatus(500);
     }
 });
