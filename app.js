@@ -4,7 +4,8 @@ import { pool } from "./db/pool.js";
 import { validateGame } from "./validations/gameValidations.js";
 import { validateCategory } from "./validations/categoryValidations.js";
 import { validateCustomer } from "./validations/customerValidation.js";
-
+import { getGamePrice } from "./db/rentals.js";
+import dayjs from "dayjs";
 const port = 4000;
 
 const app = express();
@@ -103,6 +104,7 @@ app.post("/customers", async (req, res) => {
         }
 
         const { name, phone, cpf, birthday } = customer;
+
         pool.query(
             "INSERT INTO customers (name, phone, cpf, birthday) VALUES ($1, $2, $3, $4)",
             [name, phone, cpf, birthday]
@@ -143,7 +145,6 @@ app.get("/customers/:id", async (req, res) => {
 
         res.send(customerFound.rows);
     } catch (error) {
-        console.log(error);
         res.sendStatus(500);
     }
 });
@@ -159,7 +160,7 @@ app.put("/customers/:id", async (req, res) => {
         }
 
         const { name, phone, cpf, birthday } = customer;
-        pool.query(
+        await pool.query(
             "UPDATE customers SET name=$2, phone=$3, cpf=$4, birthday=$5 WHERE id = $1;",
             [id, name, phone, cpf, birthday]
         );
@@ -169,6 +170,37 @@ app.put("/customers/:id", async (req, res) => {
         if (validation.isInvalid) {
             return res.status(error).send(validation.errorMessage);
         }
+        res.sendStatus(500);
+    }
+});
+
+app.post("/rentals", async (req, res) => {
+    const rental = req.body;
+
+    try {
+        const { customerId, gameId, daysRented } = rental;
+        const gamePrice = (await getGamePrice(gameId)) * daysRented;
+        const rentDate = dayjs().format("YYYY-MM-DD");
+        await pool.query(
+            `INSERT INTO rentals ("customerId", "gameId", "daysRented", "originalPrice", "returnDate", "delayFee", "rentDate" ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [customerId, gameId, daysRented, gamePrice, null, null, rentDate]
+        );
+
+        res.sendStatus(201);
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+    }
+});
+
+app.get("/rentals", async (req, res) => {
+    try {
+        const results = await pool.query("SELECT * FROM rentals;");
+
+        res.send(results.rows);
+    } catch (error) {
+        console.log(error);
+
         res.sendStatus(500);
     }
 });
