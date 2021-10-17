@@ -143,7 +143,7 @@ app.get("/customers/:id", async (req, res) => {
             [id]
         );
 
-        res.send(customerFound.rows);
+        res.send(customerFound.rows[0]);
     } catch (error) {
         res.sendStatus(500);
     }
