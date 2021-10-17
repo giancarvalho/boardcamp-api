@@ -4,13 +4,13 @@ import { pool } from "./db/pool.js";
 import { validateGame } from "./validations/gameValidations.js";
 import { validateCategory } from "./validations/categoryValidations.js";
 import { validateCustomer } from "./validations/customerValidation.js";
+import { validateRental } from "./validations/rentalValidation.js";
 import { getGamePrice } from "./db/rentals.js";
 import dayjs from "dayjs";
-const port = 4000;
 
+const PORT = 4000;
 const app = express();
 app.use(cors());
-
 app.use(express.json());
 
 app.post("/categories", async (req, res) => {
@@ -176,8 +176,13 @@ app.put("/customers/:id", async (req, res) => {
 
 app.post("/rentals", async (req, res) => {
     const rental = req.body;
+    const validation = await validateRental(rental);
 
     try {
+        if (validation.isInvalid) {
+            throw validation.errorCode;
+        }
+
         const { customerId, gameId, daysRented } = rental;
         const gamePrice = (await getGamePrice(gameId)) * daysRented;
         const rentDate = dayjs().format("YYYY-MM-DD");
@@ -188,7 +193,9 @@ app.post("/rentals", async (req, res) => {
 
         res.sendStatus(201);
     } catch (error) {
-        console.log(error);
+        if (validation.isInvalid) {
+            return res.status(error).send(validation.errorMessage);
+        }
         res.sendStatus(500);
     }
 });
@@ -205,4 +212,4 @@ app.get("/rentals", async (req, res) => {
     }
 });
 
-app.listen(port);
+app.listen(PORT);

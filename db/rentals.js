@@ -14,6 +14,4 @@ async function getGamePrice(id) {
     }
 }
 
-getGamePrice(8);
-
 export { getGamePrice };
