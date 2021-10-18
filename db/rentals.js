@@ -18,7 +18,7 @@ async function getGamePrice(id) {
 async function getRentalData(id) {
     try {
         const rentalData = await pool.query(
-            `SELECT rentals."rentDate", games."pricePerDay" FROM rentals JOIN games ON rentals."gameId"=games.id WHERE rentals.id = $1;
+            `SELECT rentals."rentDate", rentals."daysRented", games."pricePerDay" FROM rentals JOIN games ON rentals."gameId"=games.id WHERE rentals.id = $1;
 `,
             [id]
         );
@@ -29,5 +29,3 @@ async function getRentalData(id) {
 }
 
 export { getGamePrice, getRentalData };
-
-getRentalData(3);

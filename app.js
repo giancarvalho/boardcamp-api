@@ -218,11 +218,18 @@ app.post("/rentals/:id/return", async (req, res) => {
     try {
         const rentalData = await getRentalData(id);
         const today = dayjs();
-        console.log(rentalData.rentDate);
+        const expectedReturn = dayjs(rentalData.rentDate).add(
+            rentalData.daysRented,
+            "day"
+        );
+
         const delayFee =
-            Number(today.diff(dayjs(rentalData.rentDate), "d")) *
-            rentalData.pricePerDay;
-        console.log(delayFee);
+            expectedReturn < today
+                ? Number(expectedReturn.diff(today, "d")) *
+                  rentalData.pricePerDay *
+                  -1
+                : 0;
+
         await pool.query(
             `UPDATE rentals SET "returnDate"=$2, "delayFee"=$3 WHERE id = $1`,
             [id, today, delayFee]
