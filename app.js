@@ -4,9 +4,9 @@ import { pool } from "./db/pool.js";
 import { validateGame } from "./validations/gameValidations.js";
 import { validateCategory } from "./validations/categoryValidations.js";
 import { validateCustomer } from "./validations/customerValidation.js";
-import { validateRental } from "./validations/rentalValidation.js";
+import { validateNewRental } from "./validations/rentalValidation.js";
 import { getGamePrice, getRentalData } from "./db/rentals.js";
-import { validateReturn } from "./validations/rentalValidation.js";
+import { validateRental } from "./validations/rentalValidation.js";
 import dayjs from "dayjs";
 
 const PORT = 4000;
@@ -177,7 +177,7 @@ app.put("/customers/:id", async (req, res) => {
 
 app.post("/rentals", async (req, res) => {
     const rental = req.body;
-    const validation = await validateRental(rental);
+    const validation = await validateNewRental(rental);
 
     try {
         if (validation.isInvalid) {
@@ -226,7 +226,7 @@ app.get("/rentals", async (req, res) => {
 
 app.post("/rentals/:id/return", async (req, res) => {
     const id = req.params.id;
-    const validation = await validateReturn(id);
+    const validation = await validateRental(id);
     try {
         if (validation.isInvalid) {
             throw validation.errorCode;
@@ -250,6 +250,26 @@ app.post("/rentals/:id/return", async (req, res) => {
             `UPDATE rentals SET "returnDate"=$2, "delayFee"=$3 WHERE id = $1`,
             [id, today, delayFee]
         );
+
+        res.sendStatus(200);
+    } catch (error) {
+        if (validation.isInvalid) {
+            return res.status(error).send(validation.errorMessage);
+        }
+
+        res.sendStatus(500);
+    }
+});
+
+app.delete("/rentals/:id", async (req, res) => {
+    const id = req.params.id;
+    const validation = await validateRental(id);
+    try {
+        if (validation.isInvalid) {
+            throw validation.errorCode;
+        }
+
+        await pool.query("DELETE FROM rentals WHERE id = $1", [id]);
 
         res.sendStatus(200);
     } catch (error) {

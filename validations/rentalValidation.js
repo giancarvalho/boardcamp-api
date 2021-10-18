@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { pool } from "../db/pool.js";
 
-async function validateRental(rental) {
+async function validateNewRental(rental) {
     const validation = { isInvalid: false, errorCode: null, errorMessage: "" };
 
     try {
@@ -27,7 +27,7 @@ async function validateRental(rental) {
         }
 
         const totalRents = await pool.query(
-            `SELECT * FROM rentals WHERE "gameId" = $1`,
+            `SELECT * FROM rentals WHERE "gameId" = $1 AND "returnDate" IS NULL`,
             [rental.gameId]
         );
 
@@ -63,7 +63,7 @@ async function validateRental(rental) {
     }
 }
 
-async function validateReturn(id) {
+async function validateRental(id) {
     const validation = { isInvalid: false, errorCode: null, errorMessage: "" };
 
     try {
@@ -92,7 +92,6 @@ async function validateReturn(id) {
 
         return validation;
     } catch (error) {
-        console.log(error);
         validation.isInvalid = true;
         validation.errorCode = 500;
         validation.errorMessage = "Unknown error";
@@ -101,4 +100,4 @@ async function validateReturn(id) {
     }
 }
 
-export { validateRental, validateReturn };
+export { validateNewRental, validateRental };
