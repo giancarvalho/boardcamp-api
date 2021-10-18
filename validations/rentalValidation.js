@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { pool } from "../db/pool.js";
 
 async function validateRental(rental) {
@@ -62,4 +63,42 @@ async function validateRental(rental) {
     }
 }
 
-export { validateRental };
+async function validateReturn(id) {
+    const validation = { isInvalid: false, errorCode: null, errorMessage: "" };
+
+    try {
+        let isRental = await pool.query("SELECT * FROM rentals WHERE id = $1", [
+            id,
+        ]);
+        isRental = isRental.rows[0];
+
+        if (!isRental) {
+            validation.isInvalid = true;
+            validation.errorCode = 400;
+            validation.errorMessage = "Rental does not exist.";
+
+            return validation;
+        }
+
+        if (isRental.returnDate) {
+            validation.isInvalid = true;
+            validation.errorCode = 400;
+            validation.errorMessage = `This rental was finished on ${dayjs(
+                isRental.returnDate
+            ).format("DD-MM-YYYY")}`;
+
+            return validation;
+        }
+
+        return validation;
+    } catch (error) {
+        console.log(error);
+        validation.isInvalid = true;
+        validation.errorCode = 500;
+        validation.errorMessage = "Unknown error";
+
+        return validation;
+    }
+}
+
+export { validateRental, validateReturn };

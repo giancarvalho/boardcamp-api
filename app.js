@@ -6,6 +6,7 @@ import { validateCategory } from "./validations/categoryValidations.js";
 import { validateCustomer } from "./validations/customerValidation.js";
 import { validateRental } from "./validations/rentalValidation.js";
 import { getGamePrice, getRentalData } from "./db/rentals.js";
+import { validateReturn } from "./validations/rentalValidation.js";
 import dayjs from "dayjs";
 
 const PORT = 4000;
@@ -214,8 +215,12 @@ app.get("/rentals", async (req, res) => {
 
 app.post("/rentals/:id/return", async (req, res) => {
     const id = req.params.id;
-
+    const validation = await validateReturn(id);
     try {
+        if (validation.isInvalid) {
+            throw validation.errorCode;
+        }
+
         const rentalData = await getRentalData(id);
         const today = dayjs();
         const expectedReturn = dayjs(rentalData.rentDate).add(
@@ -235,9 +240,12 @@ app.post("/rentals/:id/return", async (req, res) => {
             [id, today, delayFee]
         );
 
-        res.sendStatus(201);
+        res.sendStatus(200);
     } catch (error) {
-        console.log(error);
+        if (validation.isInvalid) {
+            return res.status(error).send(validation.errorMessage);
+        }
+
         res.sendStatus(500);
     }
 });
