@@ -202,13 +202,24 @@ app.post("/rentals", async (req, res) => {
 });
 
 app.get("/rentals", async (req, res) => {
+    const gameId = req.query.gameId;
+    const customerId = req.query.customerId;
+    const searchFilter = gameId ? 'rentals."gameId"' : 'rentals."customerId"';
+    const id = gameId ? gameId : customerId;
+
     try {
-        const results = await pool.query("SELECT * FROM rentals;");
+        let results;
+        if (id) {
+            results = await pool.query(
+                `SELECT * FROM rentals WHERE ${searchFilter} = $1;`,
+                [id]
+            );
+        } else {
+            results = await pool.query(`SELECT * FROM rentals;`);
+        }
 
         res.send(results.rows);
     } catch (error) {
-        console.log(error);
-
         res.sendStatus(500);
     }
 });
