@@ -2,7 +2,7 @@
 
 This is an API made for the Boardcamp website, a fictional website specialized on tabletop rentals - where you can manage clients, games, rentals and returns. 
 
-# main technologies
+## main technologies
 
 * Node.js
 * Express
