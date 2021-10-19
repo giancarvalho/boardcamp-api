@@ -252,7 +252,6 @@ app.get("/rentals", async (req, res) => {
 
         res.send(results);
     } catch (error) {
-        console.log(error);
         res.sendStatus(500);
     }
 });
