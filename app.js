@@ -207,19 +207,52 @@ app.get("/rentals", async (req, res) => {
     const searchFilter = gameId ? 'rentals."gameId"' : 'rentals."customerId"';
     const id = gameId ? gameId : customerId;
 
+    const basicQuery = `
+    SELECT  rentals.*, customers.name as "customerName", games.name AS "gameName", games."categoryId", categories.name AS "categoryName"
+    FROM rentals 
+    JOIN customers 
+    ON customers.id = rentals."customerId" 
+    JOIN games 
+    ON games.id = rentals."gameId" 
+    JOIN categories 
+    ON categories.id = games."categoryId"
+    `;
+
     try {
         let results;
         if (id) {
             results = await pool.query(
-                `SELECT * FROM rentals WHERE ${searchFilter} = $1;`,
+                `${basicQuery} WHERE ${searchFilter} = $1;`,
                 [id]
             );
         } else {
-            results = await pool.query(`SELECT * FROM rentals;`);
+            results = await pool.query(`${basicQuery};`);
         }
 
-        res.send(results.rows);
+        results = results.rows.map((item) => {
+            const rental = {
+                ...item,
+                customers: { id: item.gameId, name: item.customerName },
+                game: {
+                    id: item.gameId,
+                    name: item.gameName,
+                    categoryId: item.categoryId,
+                    categoryName: item.categoryName,
+                },
+            };
+
+            delete rental.categoryName;
+            delete rental.categoryId;
+            delete rental.gameName;
+            delete rental.gameId;
+            delete rental.customerName;
+
+            return rental;
+        });
+
+        res.send(results);
     } catch (error) {
+        console.log(error);
         res.sendStatus(500);
     }
 });
